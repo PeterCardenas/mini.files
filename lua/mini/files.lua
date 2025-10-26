@@ -580,7 +580,7 @@ local H = {}
 ---   -- OR
 ---   require('mini.files').setup({}) -- replace {} with your config table
 --- <
-MiniFiles.setup = function(config)
+function MiniFiles.setup(config)
   -- TODO: Remove after Neovim=0.9 support is dropped
   if vim.fn.has('nvim-0.10') == 0 then
     vim.notify(
@@ -589,7 +589,6 @@ MiniFiles.setup = function(config)
         .. ' Please update your Neovim version.'
     )
   end
-
   -- Export module
   _G.MiniFiles = MiniFiles
 
@@ -819,7 +818,7 @@ MiniFiles.config = {
 ---   (based on the supplied anchor path). Default: `true`.
 ---@param opts MiniFiles.PartialConfig|nil Table of options overriding |MiniFiles.config| and
 ---   `vim.b.minifiles_config` for this particular explorer session.
-MiniFiles.open = function(path, use_latest, opts)
+function MiniFiles.open(path, use_latest, opts)
   -- Validate path: allow only valid file system path
   path = H.fs_full_path(path or vim.fn.getcwd())
 
@@ -876,7 +875,7 @@ end
 ---   buffers are forced to update.
 ---
 ---@param opts MiniFiles.PartialConfig|nil Table of options to update.
-MiniFiles.refresh = function(opts)
+function MiniFiles.refresh(opts)
   local explorer = H.explorer_get()
   if explorer == nil then return end
 
@@ -903,7 +902,7 @@ end
 ---   Can be used without user edits to account for external file system changes.
 ---
 ---@return boolean? Whether synchronization was done.
-MiniFiles.synchronize = function()
+function MiniFiles.synchronize()
   local explorer = H.explorer_get()
   if explorer == nil then return end
 
@@ -925,7 +924,7 @@ end
 --- - Show single window focused on anchor directory (which was used as first
 ---   argument for |MiniFiles.open()|).
 --- - Reset all tracked directory cursors to point at first entry.
-MiniFiles.reset = function()
+function MiniFiles.reset()
   local explorer = H.explorer_get()
   if explorer == nil then return end
 
@@ -945,7 +944,7 @@ end
 --- Close explorer
 ---
 ---@return boolean|nil Whether closing was done or `nil` if there was nothing to close.
-MiniFiles.close = function()
+function MiniFiles.close()
   -- Stop possible tracking lost focus
   pcall(vim.loop.timer_stop, H.timers.focus)
 
@@ -1008,7 +1007,7 @@ end
 ---   - <close_on_file> `(boolean)` - whether to close explorer after going
 ---     inside a file. Powers the `go_in_plus` mapping.
 ---     Default: `false`.
-MiniFiles.go_in = function(opts)
+function MiniFiles.go_in(opts)
   local explorer = H.explorer_get()
   if explorer == nil then return end
 
@@ -1031,7 +1030,7 @@ end
 --- Go out to parent directory
 ---
 --- - Focus on window to the left showing parent of current directory.
-MiniFiles.go_out = function()
+function MiniFiles.go_out()
   local explorer = H.explorer_get()
   if explorer == nil then return end
 
@@ -1048,7 +1047,7 @@ end
 ---
 --- - Remove all branch paths to the left of currently focused one. This also
 ---   results into current window becoming the most left one.
-MiniFiles.trim_left = function()
+function MiniFiles.trim_left()
   local explorer = H.explorer_get()
   if explorer == nil then return end
 
@@ -1060,7 +1059,7 @@ end
 ---
 --- - Remove all branch paths to the right of currently focused one. This also
 ---   results into current window becoming the most right one.
-MiniFiles.trim_right = function()
+function MiniFiles.trim_right()
   local explorer = H.explorer_get()
   if explorer == nil then return end
 
@@ -1072,7 +1071,7 @@ end
 ---
 --- - Prepend branch with parent paths until current working directory is reached.
 ---   Do nothing if not inside it.
-MiniFiles.reveal_cwd = function()
+function MiniFiles.reveal_cwd()
   local state = MiniFiles.get_explorer_state()
   if state == nil then return end
   local branch, depth_focus = state.branch, state.depth_focus
@@ -1091,7 +1090,7 @@ end
 ---
 --- - Open window with helpful information about currently shown explorer and
 ---   focus on it. To close it, press `q`.
-MiniFiles.show_help = function()
+function MiniFiles.show_help()
   local explorer = H.explorer_get()
   if explorer == nil then return end
 
@@ -1112,7 +1111,7 @@ end
 --- __minifiles_fs_entry_data_fields
 ---
 --- Returns `nil` if there is no proper file system entry path at the line.
-MiniFiles.get_fs_entry = function(buf_id, line)
+function MiniFiles.get_fs_entry(buf_id, line)
   buf_id = H.validate_opened_buffer(buf_id)
   line = H.validate_line(buf_id, line)
 
@@ -1137,7 +1136,7 @@ end
 ---@seealso - |MiniFiles.set_bookmark()|
 --- - |MiniFiles.set_branch()|
 --- - |MiniFiles.set_target_window()|
-MiniFiles.get_explorer_state = function()
+function MiniFiles.get_explorer_state()
   local explorer = H.explorer_get()
   if explorer == nil then return end
 
@@ -1162,7 +1161,7 @@ end
 --- Set target window
 ---
 ---@param win_id number Window identifier inside which file will be opened.
-MiniFiles.set_target_window = function(win_id)
+function MiniFiles.set_target_window(win_id)
   if not H.is_valid_win(win_id) then H.error('`win_id` should be valid window identifier.') end
 
   local explorer = H.explorer_get()
@@ -1185,7 +1184,7 @@ end
 ---     be normalized to fit inside `branch`. Default: index of deepest directory.
 ---
 ---@seealso |MiniFiles.get_explorer_state()|
-MiniFiles.set_branch = function(branch, opts)
+function MiniFiles.set_branch(branch, opts)
   local explorer = H.explorer_get()
   if explorer == nil then return end
 
@@ -1221,7 +1220,7 @@ end
 ---   a bookmark's path. If callable, should return such path.
 ---@param opts { desc: string }|nil Options. Possible fields:
 ---   - <desc> `(string)` - bookmark description (used in help window).
-MiniFiles.set_bookmark = function(id, path, opts)
+function MiniFiles.set_bookmark(id, path, opts)
   local explorer = H.explorer_get()
   if explorer == nil then return end
 
@@ -1239,7 +1238,7 @@ end
 ---
 --- Note: if latest used `path` argument for |MiniFiles.open()| was for file,
 --- this will return its parent (as it was used as anchor path).
-MiniFiles.get_latest_path = function() return H.latest_paths[vim.api.nvim_get_current_tabpage()] end
+function MiniFiles.get_latest_path() return H.latest_paths[vim.api.nvim_get_current_tabpage()] end
 
 --- Default filter of file system entries
 ---
@@ -1249,7 +1248,7 @@ MiniFiles.get_latest_path = function() return H.latest_paths[vim.api.nvim_get_cu
 --- __minifiles_fs_entry_data_fields
 ---
 ---@return boolean Always `true`.
-MiniFiles.default_filter = function(fs_entry) return true end
+function MiniFiles.default_filter(fs_entry) return true end
 
 --- Default prefix of file system entries
 ---
@@ -1264,7 +1263,7 @@ MiniFiles.default_filter = function(fs_entry) return true end
 ---
 ---@return ... Icon and highlight group name. For more details, see |MiniFiles.config|
 ---   and |MiniFiles-examples|.
-MiniFiles.default_prefix = function(fs_entry)
+function MiniFiles.default_prefix(fs_entry)
   -- Prefer 'mini.icons'
   if _G.MiniIcons ~= nil then
     local category = fs_entry.fs_type == 'directory' and 'directory' or 'file'
@@ -1291,7 +1290,7 @@ end
 --- __minifiles_fs_entry_data_fields
 ---
 ---@return table Sorted array of file system entries.
-MiniFiles.default_sort = function(fs_entries)
+function MiniFiles.default_sort(fs_entries)
   -- Sort ignoring case
   local res = vim.tbl_map(
     function(x) ---@param x fs_entry
@@ -1321,7 +1320,7 @@ end
 --- __minifiles_fs_entry_data_fields
 ---
 ---@return string Highlight group name.
-MiniFiles.default_highlight = function(fs_entry)
+function MiniFiles.default_highlight(fs_entry)
   return fs_entry.fs_type == 'directory' and 'MiniFilesDirectory' or 'MiniFilesFile'
 end
 
@@ -1370,7 +1369,7 @@ H.is_windows = vim.loop.os_uname().sysname == 'Windows_NT'
 -- Helper functionality =======================================================
 -- Settings -------------------------------------------------------------------
 ---@param config MiniFiles.PartialConfig?
-H.setup_config = function(config)
+function H.setup_config(config)
   H.check_type('config', config, 'table', true)
   config = vim.tbl_deep_extend('force', vim.deepcopy(H.default_config), config or {})
 
@@ -1411,13 +1410,13 @@ H.setup_config = function(config)
 end
 
 ---@param config MiniFiles.Config
-H.apply_config = function(config) MiniFiles.config = config end
+function H.apply_config(config) MiniFiles.config = config end
 
 ---@param config MiniFiles.Config
-H.create_autocommands = function(config)
+function H.create_autocommands(config)
   local gr = vim.api.nvim_create_augroup('MiniFiles', {})
 
-  local au = function(event, pattern, callback, desc)
+  local function au(event, pattern, callback, desc)
     vim.api.nvim_create_autocmd(event, { group = gr, pattern = pattern, callback = callback, desc = desc })
   end
 
@@ -1435,8 +1434,8 @@ H.create_autocommands = function(config)
 end
 
 --stylua: ignore
-H.create_default_hl = function()
-  local hi = function(name, opts)
+function H.create_default_hl()
+  local function hi(name, opts)
     opts.default = true
     vim.api.nvim_set_hl(0, name, opts)
   end
@@ -1452,11 +1451,11 @@ H.create_default_hl = function()
 end
 
 ---@param config MiniFiles.Config?
-H.get_config = function(config)
+function H.get_config(config)
   return vim.tbl_deep_extend('force', MiniFiles.config, vim.b.minifiles_config or {}, config or {})
 end
 
-H.normalize_opts = function(explorer_opts, opts)
+function H.normalize_opts(explorer_opts, opts)
   opts = vim.tbl_deep_extend('force', H.get_config(), explorer_opts or {}, opts or {})
   opts.content.filter = opts.content.filter or MiniFiles.default_filter
   opts.content.highlight = opts.content.highlight or MiniFiles.default_highlight
@@ -1467,7 +1466,7 @@ H.normalize_opts = function(explorer_opts, opts)
 end
 
 -- Autocommands ---------------------------------------------------------------
-H.track_dir_edit = function(data)
+function H.track_dir_edit(data)
   -- Make early returns
   if vim.api.nvim_get_current_buf() ~= data.buf then return end
 
@@ -1523,7 +1522,7 @@ end
 ---   normalized and should be closed.
 ---@private
 ---@param path string
-H.explorer_new = function(path)
+function H.explorer_new(path)
   return {
     branch = { path },
     depth_focus = 1,
@@ -1539,7 +1538,7 @@ end
 
 ---@param tabpage_id? integer
 ---@param ignore_visibility? boolean
-H.explorer_get = function(tabpage_id, ignore_visibility)
+function H.explorer_get(tabpage_id, ignore_visibility)
   tabpage_id = tabpage_id or vim.api.nvim_get_current_tabpage()
   local res = H.opened_explorers[tabpage_id]
 
@@ -1550,7 +1549,7 @@ H.explorer_get = function(tabpage_id, ignore_visibility)
 end
 
 ---@param explorer Explorer
-H.explorer_is_visible = function(explorer)
+function H.explorer_is_visible(explorer)
   if explorer == nil then return nil end
   for _, win_id in ipairs(explorer.windows) do
     if H.is_valid_win(win_id) then return true end
@@ -1559,7 +1558,7 @@ H.explorer_is_visible = function(explorer)
 end
 
 ---@param explorer Explorer
-H.explorer_refresh = function(explorer, opts)
+function H.explorer_refresh(explorer, opts)
   explorer = H.explorer_normalize(explorer)
   if explorer.is_corrupted then
     -- Make sure that same explorer can be opened later from history
@@ -1660,7 +1659,7 @@ H.explorer_refresh = function(explorer, opts)
   return explorer
 end
 
-H.explorer_track_lost_focus = function()
+function H.explorer_track_lost_focus()
   local track = vim.schedule_wrap(function()
     if H.vim_ui.select_active or H.vim_ui.input_active then return end
     local ft = vim.bo.filetype
@@ -1693,7 +1692,7 @@ H.explorer_adjust_vim_ui = function()
 end
 
 ---@param explorer Explorer
-H.explorer_normalize = function(explorer)
+function H.explorer_normalize(explorer)
   -- Ensure that all paths from branch are valid present paths
   local norm_branch = {}
   for _, path in ipairs(explorer.branch) do
@@ -1723,7 +1722,7 @@ end
 
 ---@param explorer Explorer
 ---@param depth integer
-H.explorer_sync_cursor_and_branch = function(explorer, depth)
+function H.explorer_sync_cursor_and_branch(explorer, depth)
   -- Compute helper data while making early returns
   if #explorer.branch < depth then return explorer end
 
@@ -1767,7 +1766,7 @@ end
 ---@param buf_id integer
 ---@param from_line integer
 ---@param to_line integer
-H.explorer_go_in_range = function(explorer, buf_id, from_line, to_line)
+function H.explorer_go_in_range(explorer, buf_id, from_line, to_line)
   -- Compute which entries to go in: all files and only last directory
   local files, path, line = {}, nil, nil
   for i = from_line, to_line do
@@ -1807,7 +1806,7 @@ end
 ---@param explorer Explorer
 ---@param path string
 ---@param entry_name string
-H.explorer_focus_on_entry = function(explorer, path, entry_name)
+function H.explorer_focus_on_entry(explorer, path, entry_name)
   if entry_name == nil then return explorer end
 
   -- Set focus on directory. Reset if it is not in current branch.
@@ -1825,7 +1824,7 @@ H.explorer_focus_on_entry = function(explorer, path, entry_name)
 end
 
 ---@param explorer Explorer
-H.explorer_compute_fs_actions = function(explorer)
+function H.explorer_compute_fs_actions(explorer)
   -- Compute differences
   local fs_diffs = {}
   for _, view in pairs(explorer.views) do
@@ -1904,7 +1903,7 @@ H.explorer_compute_fs_actions = function(explorer)
 end
 
 ---@param explorer Explorer
-H.explorer_update_cursors = function(explorer)
+function H.explorer_update_cursors(explorer)
   for _, win_id in ipairs(explorer.windows) do
     if H.is_valid_win(win_id) then
       local buf_id = vim.api.nvim_win_get_buf(win_id)
@@ -1920,7 +1919,7 @@ end
 ---@param depth integer
 ---@param win_count integer
 ---@param win_col integer
-H.explorer_refresh_depth_window = function(explorer, depth, win_count, win_col)
+function H.explorer_refresh_depth_window(explorer, depth, win_count, win_col)
   local path = explorer.branch[depth]
   local type = H.fs_get_type(path)
   local views, windows, opts = explorer.views, explorer.windows, explorer.opts
@@ -1972,14 +1971,14 @@ end
 
 ---@param explorer Explorer
 ---@param path string
-H.explorer_get_path_depth = function(explorer, path)
+function H.explorer_get_path_depth(explorer, path)
   for depth, depth_path in pairs(explorer.branch) do
     if path == depth_path then return depth end
   end
 end
 
 ---@param explorer Explorer
-H.explorer_ignore_pending_fs_actions = function(explorer, action_name)
+function H.explorer_ignore_pending_fs_actions(explorer, action_name)
   -- Exit if nothing to ignore
   if H.explorer_compute_fs_actions(explorer) == nil then return true end
 
@@ -1990,14 +1989,14 @@ end
 
 ---@param explorer Explorer
 ---@param path string
-H.explorer_open_file = function(explorer, path)
+function H.explorer_open_file(explorer, path)
   explorer = H.explorer_ensure_target_window(explorer)
   H.edit(path, explorer.target_window)
   return explorer
 end
 
 ---@param explorer Explorer
-H.explorer_ensure_target_window = function(explorer)
+function H.explorer_ensure_target_window(explorer)
   if not H.is_valid_win(explorer.target_window) then explorer.target_window = H.get_first_valid_normal_window() end
   return explorer
 end
@@ -2005,7 +2004,7 @@ end
 ---@param explorer Explorer
 ---@param path string
 ---@param target_depth integer
-H.explorer_open_directory = function(explorer, path, target_depth)
+function H.explorer_open_directory(explorer, path, target_depth)
   -- Update focused depth
   explorer.depth_focus = target_depth
 
@@ -2020,7 +2019,7 @@ H.explorer_open_directory = function(explorer, path, target_depth)
 end
 
 ---@param explorer Explorer
-H.explorer_open_root_parent = function(explorer)
+function H.explorer_open_root_parent(explorer)
   local root = explorer.branch[1]
   local root_parent = H.fs_get_parent(root)
   if root_parent == nil then return explorer end
@@ -2033,7 +2032,7 @@ H.explorer_open_root_parent = function(explorer)
 end
 
 ---@param explorer Explorer
-H.explorer_trim_branch_right = function(explorer)
+function H.explorer_trim_branch_right(explorer)
   for i = explorer.depth_focus + 1, #explorer.branch do
     explorer.branch[i] = nil
   end
@@ -2041,7 +2040,7 @@ H.explorer_trim_branch_right = function(explorer)
 end
 
 ---@param explorer Explorer
-H.explorer_trim_branch_left = function(explorer)
+function H.explorer_trim_branch_left(explorer)
   local new_branch = {}
   for i = explorer.depth_focus, #explorer.branch do
     table.insert(new_branch, explorer.branch[i])
@@ -2051,7 +2050,7 @@ H.explorer_trim_branch_left = function(explorer)
   return explorer
 end
 
-H.explorer_show_help = function(explorer, explorer_buf_id, explorer_win_id)
+function H.explorer_show_help(explorer, explorer_buf_id, explorer_win_id)
   -- Compute lines
   local buf_mappings = vim.api.nvim_buf_get_keymap(explorer_buf_id, 'n')
   local map_data, desc_width = {}, 0
@@ -2130,7 +2129,7 @@ H.explorer_show_help = function(explorer, explorer_buf_id, explorer_win_id)
 end
 
 ---@param explorer Explorer
-H.compute_visible_depth_range = function(explorer, opts)
+function H.compute_visible_depth_range(explorer, opts)
   -- Compute maximum number of windows possible to fit in current Neovim width
   -- Add 2 to widths to take into account width of left and right borders
   local width_focus, width_nofocus = opts.windows.width_focus + 2, opts.windows.width_nofocus + 2
@@ -2164,7 +2163,7 @@ H.compute_visible_depth_range = function(explorer, opts)
 end
 
 -- Views ----------------------------------------------------------------------
-H.view_ensure_proper = function(view, path, opts, is_focused, is_preview)
+function H.view_ensure_proper(view, path, opts, is_focused, is_preview)
   -- Ensure proper buffer
   local needs_recreate, needs_reprocess = not H.is_valid_buf(view.buf_id), not view.was_focused and is_focused
   if needs_recreate then
@@ -2187,7 +2186,7 @@ H.view_ensure_proper = function(view, path, opts, is_focused, is_preview)
   return view
 end
 
-H.view_encode_cursor = function(view)
+function H.view_encode_cursor(view)
   local buf_id, cursor = view.buf_id, view.cursor
   if not H.is_valid_buf(buf_id) or type(cursor) ~= 'table' then return view end
 
@@ -2199,7 +2198,7 @@ H.view_encode_cursor = function(view)
   return view
 end
 
-H.view_decode_cursor = function(view)
+function H.view_decode_cursor(view)
   local buf_id, cursor = view.buf_id, view.cursor
   if not H.is_valid_buf(buf_id) or type(cursor) ~= 'string' then return view end
 
@@ -2214,7 +2213,7 @@ H.view_decode_cursor = function(view)
   return view
 end
 
-H.view_invalidate_buffer = function(view)
+function H.view_invalidate_buffer(view)
   H.buffer_delete(view.buf_id)
   view.buf_id = nil
   return view
@@ -2252,7 +2251,7 @@ H.view_track_cursor = vim.schedule_wrap(function(data)
   H.explorer_refresh(explorer)
 end)
 
-H.view_track_text_change = function(data)
+function H.view_track_text_change(data)
   -- Track 'modified'
   local buf_id = data.buf
   local new_n_modified = H.opened_buffers[buf_id].n_modified + 1
@@ -2289,7 +2288,7 @@ end
 
 -- Buffers --------------------------------------------------------------------
 ---@param path string
-H.buffer_create = function(path, mappings)
+function H.buffer_create(path, mappings)
   -- Create buffer
   local buf_id = vim.api.nvim_create_buf(false, true)
   H.set_buf_name(buf_id, path)
@@ -2308,7 +2307,7 @@ H.buffer_create = function(path, mappings)
 
   -- Make buffer autocommands
   local augroup = vim.api.nvim_create_augroup('MiniFiles', { clear = false })
-  local au = function(events, desc, callback)
+  local function au(events, desc, callback)
     vim.api.nvim_create_autocmd(events, { group = augroup, buffer = buf_id, desc = desc, callback = callback })
   end
 
@@ -2325,31 +2324,31 @@ H.buffer_create = function(path, mappings)
 end
 
 ---@param buf_id integer
-H.buffer_make_mappings = function(buf_id, mappings)
-  local go_in_with_count = function()
+function H.buffer_make_mappings(buf_id, mappings)
+  local function go_in_with_count()
     for _ = 1, vim.v.count1 do
       MiniFiles.go_in()
     end
   end
 
-  local go_in_plus = function()
+  local function go_in_plus()
     for _ = 1, vim.v.count1 do
       MiniFiles.go_in({ close_on_file = true })
     end
   end
 
-  local go_out_with_count = function()
+  local function go_out_with_count()
     for _ = 1, vim.v.count1 do
       MiniFiles.go_out()
     end
   end
 
-  local go_out_plus = function()
+  local function go_out_plus()
     go_out_with_count()
     MiniFiles.trim_right()
   end
 
-  local go_in_visual = function()
+  local function go_in_visual()
     -- React only on linewise mode, as others can be used for editing
     if vim.fn.mode() ~= 'V' then return mappings.go_in end
 
@@ -2366,7 +2365,7 @@ H.buffer_make_mappings = function(buf_id, mappings)
     return [[<C-\><C-n>]]
   end
 
-  local mark_goto = function()
+  local function mark_goto()
     local id = H.getcharstr()
     if id == nil then return end
     local data = MiniFiles.get_explorer_state().bookmarks[id]
@@ -2382,7 +2381,7 @@ H.buffer_make_mappings = function(buf_id, mappings)
     MiniFiles.set_branch({ path })
   end
 
-  local mark_set = function()
+  local function mark_set()
     local id = H.getcharstr()
     if id == nil then return end
     local state = MiniFiles.get_explorer_state()
@@ -2390,7 +2389,7 @@ H.buffer_make_mappings = function(buf_id, mappings)
     H.notify('Bookmark ' .. vim.inspect(id) .. ' is set', 'INFO')
   end
 
-  local buf_map = function(mode, lhs, rhs, desc)
+  local function buf_map(mode, lhs, rhs, desc)
     -- Use `nowait` to account for non-buffer mappings starting with `lhs`
     H.map(mode, lhs, rhs, { buffer = buf_id, desc = desc, nowait = true })
   end
@@ -2415,7 +2414,7 @@ H.buffer_make_mappings = function(buf_id, mappings)
 end
 
 ---@param buf_id integer
-H.buffer_update = function(buf_id, path, opts, is_preview)
+function H.buffer_update(buf_id, path, opts, is_preview)
   if not H.is_valid_buf(buf_id) then return end
 
   -- Perform entry type specific updates
@@ -2433,7 +2432,7 @@ H.buffer_update = function(buf_id, path, opts, is_preview)
 end
 
 ---@param buf_id integer
-H.buffer_update_directory = function(buf_id, path, opts, is_preview)
+function H.buffer_update_directory(buf_id, path, opts, is_preview)
   -- Compute and cache (to use during sync) shown file system entries
   local children_path_ids = H.opened_buffers[buf_id].children_path_ids
   local fs_entries = children_path_ids == nil and H.fs_read_dir(path, opts.content)
@@ -2470,7 +2469,7 @@ H.buffer_update_directory = function(buf_id, path, opts, is_preview)
   local ns_id = H.ns_id.highlight
   vim.api.nvim_buf_clear_namespace(buf_id, ns_id, 0, -1)
 
-  local set_hl = function(line, col, hl_opts) H.set_extmark(buf_id, ns_id, line, col, hl_opts) end
+  local function set_hl(line, col, hl_opts) H.set_extmark(buf_id, ns_id, line, col, hl_opts) end
 
   for i, l in ipairs(lines) do
     local icon_start, name_start = l:match('^/%d+/().-()/')
@@ -2484,7 +2483,7 @@ H.buffer_update_directory = function(buf_id, path, opts, is_preview)
   end
 end
 
-H.buffer_update_file = function(buf_id, path, opts, _)
+function H.buffer_update_file(buf_id, path, opts, _)
   -- Work only with readable text file. This is not 100% proof, but good enough.
   -- Source: https://github.com/sharkdp/content_inspector
   local type = H.fs_get_type(path)
@@ -2516,14 +2515,14 @@ H.buffer_update_file = function(buf_id, path, opts, _)
 end
 
 ---@param buf_id integer
-H.buffer_delete = function(buf_id)
+function H.buffer_delete(buf_id)
   if buf_id == nil then return end
   pcall(vim.api.nvim_buf_delete, buf_id, { force = true })
   H.opened_buffers[buf_id] = nil
 end
 
 ---@param buf_id integer
-H.buffer_compute_fs_diff = function(buf_id)
+function H.buffer_compute_fs_diff(buf_id)
   if not H.is_modified_buffer(buf_id) then return {} end
 
   local path = H.opened_buffers[buf_id].path
@@ -2559,23 +2558,23 @@ H.buffer_compute_fs_diff = function(buf_id)
 end
 
 ---@param buf_id integer
-H.buffer_should_highlight = function(buf_id)
+function H.buffer_should_highlight(buf_id)
   -- Highlight if buffer size is not too big, both in total and per line
   local buf_size = vim.api.nvim_buf_call(buf_id, function() return vim.fn.line2byte(vim.fn.line('$') + 1) end)
   return buf_size <= 1000000 and buf_size <= 1000 * vim.api.nvim_buf_line_count(buf_id)
 end
 
 ---@param buf_id integer
-H.is_opened_buffer = function(buf_id) return H.opened_buffers[buf_id] ~= nil end
+function H.is_opened_buffer(buf_id) return H.opened_buffers[buf_id] ~= nil end
 
 ---@param buf_id integer
-H.is_modified_buffer = function(buf_id)
+function H.is_modified_buffer(buf_id)
   local data = H.opened_buffers[buf_id]
   return data ~= nil and data.n_modified > 0
 end
 
 ---@param l string?
-H.match_line_entry_name = function(l)
+function H.match_line_entry_name(l)
   if l == nil then return nil end
   local offset = H.match_line_offset(l)
   -- Go up until first occurrence of path separator allowing to track entries
@@ -2585,13 +2584,13 @@ H.match_line_entry_name = function(l)
 end
 
 ---@param l string?
-H.match_line_offset = function(l)
+function H.match_line_offset(l)
   if l == nil then return nil end
   return l:match('^/.-/.-/()') or 1
 end
 
 ---@param l string?
-H.match_line_path_id = function(l)
+function H.match_line_path_id(l)
   if l == nil then return nil end
 
   local id_str = l:match('^/(%d+)')
@@ -2601,7 +2600,7 @@ H.match_line_path_id = function(l)
 end
 
 -- Windows --------------------------------------------------------------------
-H.window_open = function(buf_id, config)
+function H.window_open(buf_id, config)
   -- Add always the same extra data
   config.anchor = 'NW'
   config.border = (vim.fn.exists('+winborder') == 0 or vim.o.winborder == '') and 'single' or nil
@@ -2640,7 +2639,7 @@ H.window_open = function(buf_id, config)
   return win_id
 end
 
-H.window_update = function(win_id, config)
+function H.window_update(win_id, config)
   -- Preserve some config values
   local win_config = vim.api.nvim_win_get_config(win_id)
   config.border, config.title_pos = win_config.border, win_config.title_pos
@@ -2669,7 +2668,7 @@ H.window_update = function(win_id, config)
   vim.wo[win_id].conceallevel = 3
 end
 
-H.window_update_highlight = function(win_id, new_from, new_to)
+function H.window_update_highlight(win_id, new_from, new_to)
   local new_entry = new_from .. ':' .. new_to
   local replace_pattern = string.format('(%s:[^,]*)', vim.pesc(new_from))
   local new_winhighlight, n_replace = vim.wo[win_id].winhighlight:gsub(replace_pattern, new_entry)
@@ -2678,19 +2677,19 @@ H.window_update_highlight = function(win_id, new_from, new_to)
   vim.wo[win_id].winhighlight = new_winhighlight
 end
 
-H.window_focus = function(win_id)
+function H.window_focus(win_id)
   vim.api.nvim_set_current_win(win_id)
   H.window_update_highlight(win_id, 'FloatTitle', 'MiniFilesTitleFocused')
 end
 
-H.window_close = function(win_id)
+function H.window_close(win_id)
   if win_id == nil then return end
   local has_buffer, buf_id = pcall(vim.api.nvim_win_get_buf, win_id)
   if has_buffer then H.opened_buffers[buf_id].win_id = nil end
   pcall(vim.api.nvim_win_close, win_id, true)
 end
 
-H.window_set_view = function(win_id, view)
+function H.window_set_view(win_id, view)
   -- Set buffer
   local buf_id, buf_data = view.buf_id, H.opened_buffers[view.buf_id]
   H.win_set_buf(win_id, buf_id)
@@ -2715,7 +2714,7 @@ H.window_set_view = function(win_id, view)
   H.window_update_border_hl(win_id)
 end
 
-H.window_set_cursor = function(win_id, cursor)
+function H.window_set_cursor(win_id, cursor)
   if type(cursor) ~= 'table' then return end
 
   vim.api.nvim_win_set_cursor(win_id, cursor)
@@ -2724,7 +2723,7 @@ H.window_set_cursor = function(win_id, cursor)
   H.window_tweak_cursor(win_id, vim.api.nvim_win_get_buf(win_id))
 end
 
-H.window_tweak_cursor = function(win_id, buf_id)
+function H.window_tweak_cursor(win_id, buf_id)
   local cursor = vim.api.nvim_win_get_cursor(win_id)
   local l = H.get_bufline(buf_id, cursor[1])
 
@@ -2739,7 +2738,7 @@ H.window_tweak_cursor = function(win_id, buf_id)
   return cursor
 end
 
-H.window_update_border_hl = function(win_id)
+function H.window_update_border_hl(win_id)
   if not H.is_valid_win(win_id) then return end
   local buf_id = vim.api.nvim_win_get_buf(win_id)
 
@@ -2747,7 +2746,7 @@ H.window_update_border_hl = function(win_id)
   H.window_update_highlight(win_id, 'FloatBorder', border_hl)
 end
 
-H.window_get_max_height = function()
+function H.window_get_max_height()
   local has_tabline = vim.o.showtabline == 2 or (vim.o.showtabline == 1 and #vim.api.nvim_list_tabpages() > 1)
   local has_statusline = vim.o.laststatus > 0
   -- Remove 2 from maximum height to account for top and bottom borders
@@ -2763,7 +2762,7 @@ end
 ---@private
 ---@param path string
 ---@param content_opts MiniFiles.Config.content
-H.fs_read_dir = function(path, content_opts)
+function H.fs_read_dir(path, content_opts)
   local fs = vim.loop.fs_scandir(path)
   local res = {}
   if not fs then return res end
@@ -2787,7 +2786,7 @@ H.fs_read_dir = function(path, content_opts)
   return res
 end
 
-H.add_path_to_index = function(path)
+function H.add_path_to_index(path)
   local cur_id = H.path_index[path]
   if cur_id ~= nil then return cur_id end
 
@@ -2798,13 +2797,13 @@ H.add_path_to_index = function(path)
   return new_id
 end
 
-H.get_fs_entry_from_path_index = function(path_id)
+function H.get_fs_entry_from_path_index(path_id)
   local path = H.path_index[path_id]
   if path == nil then return nil end
   return { fs_type = H.fs_get_type(path), name = H.fs_get_basename(path), path = path }
 end
 
-H.replace_path_in_index = function(from, to)
+function H.replace_path_in_index(from, to)
   local from_id, to_id = H.path_index[from], H.path_index[to]
   H.path_index[from_id], H.path_index[to] = to, from_id
   if to_id then H.path_index[to_id] = nil end
@@ -2812,7 +2811,7 @@ H.replace_path_in_index = function(from, to)
   H.path_index[from] = nil
 end
 
-H.compare_fs_entries = function(a, b)
+function H.compare_fs_entries(a, b)
   -- Put directory first
   if a.is_dir and not b.is_dir then return true end
   if not a.is_dir and b.is_dir then return false end
@@ -2822,23 +2821,23 @@ H.compare_fs_entries = function(a, b)
 end
 
 ---@param path string
-H.fs_normalize_path = function(path) return (path:gsub('/+', '/'):gsub('(.)/$', '%1')) end
+function H.fs_normalize_path(path) return (path:gsub('/+', '/'):gsub('(.)/$', '%1')) end
 if H.is_windows then
-  H.fs_normalize_path = function(path)
+  function H.fs_normalize_path(path)
     return (path:gsub('\\', '/'):gsub('([^/:])/+', '%1/'):gsub('([^:])/+$', '%1'):gsub('^(%a):/+([^/])', '%1://%2'))
   end
 end
 
-H.fs_is_imaginary_path = function(path) return path:sub(-1) == '\000' end
+function H.fs_is_imaginary_path(path) return path:sub(-1) == '\000' end
 
-H.fs_is_present_path = function(path) return vim.loop.fs_stat(path) ~= nil and not H.fs_is_imaginary_path(path) end
+function H.fs_is_present_path(path) return vim.loop.fs_stat(path) ~= nil and not H.fs_is_imaginary_path(path) end
 
-H.fs_child_path = function(dir, name) return H.fs_normalize_path(string.format('%s/%s', dir, name)) end
+function H.fs_child_path(dir, name) return H.fs_normalize_path(string.format('%s/%s', dir, name)) end
 
 ---@param path string
-H.fs_full_path = function(path) return H.fs_normalize_path(vim.fn.fnamemodify(path, ':p')) end
+function H.fs_full_path(path) return H.fs_normalize_path(vim.fn.fnamemodify(path, ':p')) end
 
-H.fs_shorten_path = function(path)
+function H.fs_shorten_path(path)
   -- Replace home directory with '~'
   path = H.fs_normalize_path(path)
   local home_dir = H.fs_normalize_path(vim.loop.os_homedir() or '~')
@@ -2856,10 +2855,10 @@ end
 
 ---@param path string
 ---@return string?
-H.fs_get_basename = function(path) return H.fs_normalize_path(path):match('[^/]+$') end
+function H.fs_get_basename(path) return H.fs_normalize_path(path):match('[^/]+$') end
 
 ---@param path string
-H.fs_get_parent = function(path)
+function H.fs_get_parent(path)
   path = H.fs_full_path(path)
 
   -- Deal with top root paths
@@ -2873,19 +2872,19 @@ H.fs_get_parent = function(path)
   return res .. suffix
 end
 
-H.fs_is_windows_top = function(path) return H.is_windows and path:find('^%w:[\\/]?$') ~= nil end
+function H.fs_is_windows_top(path) return H.is_windows and path:find('^%w:[\\/]?$') ~= nil end
 
-H.fs_get_type = function(path)
+function H.fs_get_type(path)
   if not (not H.fs_is_imaginary_path(path) and H.fs_is_present_path(path)) then return nil end
   return vim.fn.isdirectory(path) == 1 and 'directory' or 'file'
 end
 
 -- File system actions --------------------------------------------------------
-H.fs_actions_to_lines = function(fs_actions)
+function H.fs_actions_to_lines(fs_actions)
   -- Gather actions per source directory
   local short = H.fs_shorten_path
   local dir
-  local rel = function(p) return vim.startswith(p, dir .. '/') and p:sub(#dir + 2):gsub('/$', '') or short(p) end
+  local function rel(p) return vim.startswith(p, dir .. '/') and p:sub(#dir + 2):gsub('/$', '') or short(p) end
 
   local actions_per_dir = {}
   --stylua: ignore
@@ -2920,7 +2919,7 @@ H.fs_actions_to_lines = function(fs_actions)
   return res
 end
 
-H.fs_actions_apply = function(fs_actions, lsp_timeout)
+function H.fs_actions_apply(fs_actions)
   H.lsp_fs_hook('willCreate', fs_actions, lsp_timeout)
   H.lsp_fs_hook('willDelete', fs_actions, lsp_timeout)
   H.lsp_fs_hook('willRename', fs_actions, lsp_timeout)
@@ -3038,7 +3037,7 @@ end
 
 H.fs_do = {}
 
-H.fs_do.create = function(_, path)
+function H.fs_do.create(_, path)
   -- Don't override existing path
   if H.fs_is_present_path(path) then return H.warn_existing_path(path, 'create') end
 
@@ -3051,7 +3050,7 @@ H.fs_do.create = function(_, path)
   return vim.fn.writefile({}, path) == 0
 end
 
-H.fs_do.copy = function(from, to)
+function H.fs_do.copy(from, to)
   -- Don't override existing path
   if H.fs_is_present_path(to) then return H.warn_existing_path(from, 'copy') end
 
@@ -3077,7 +3076,7 @@ H.fs_do.copy = function(from, to)
   return success
 end
 
-H.fs_do.delete = function(from, to)
+function H.fs_do.delete(from, to)
   -- Act based on whether delete is permanent or not
   if to == nil then return vim.fn.delete(from, 'rf') == 0 end
   pcall(vim.fn.delete, to, 'rf')
@@ -3087,7 +3086,7 @@ H.fs_do.delete = function(from, to)
   return H.fs_do.move(from, to, true)
 end
 
-H.fs_do.move = function(from, to, skip_buf_rename)
+function H.fs_do.move(from, to, skip_buf_rename)
   -- Don't override existing path
   if H.fs_is_present_path(to) then return H.warn_existing_path(from, 'move or rename') end
 
@@ -3120,7 +3119,7 @@ end
 
 H.fs_do.rename = H.fs_do.move
 
-H.rename_loaded_buffer = function(buf_id, from, to)
+function H.rename_loaded_buffer(buf_id, from, to)
   if not (vim.api.nvim_buf_is_loaded(buf_id) and vim.bo[buf_id].buftype == '') then return end
   -- Make sure buffer name is normalized (same as `from` and `to`)
   local cur_name = H.fs_normalize_path(vim.api.nvim_buf_get_name(buf_id))
@@ -3137,12 +3136,12 @@ H.rename_loaded_buffer = function(buf_id, from, to)
   vim.api.nvim_buf_call(buf_id, function() vim.cmd('silent! write! | edit') end)
 end
 
-H.warn_existing_path = function(path, action)
+function H.warn_existing_path(path, action)
   H.notify(string.format('Can not %s %s. Target path already exists.', action, path), 'WARN')
   return false
 end
 
-H.adjust_after_move = function(from, to, fs_actions, start_ind)
+function H.adjust_after_move(from, to, fs_actions, start_ind)
   local from_dir_pattern, to_dir = '^' .. vim.pesc(from .. '/'), to .. '/'
   for i = start_ind, #fs_actions do
     local diff = fs_actions[i]
@@ -3154,7 +3153,7 @@ H.adjust_after_move = function(from, to, fs_actions, start_ind)
 end
 
 -- Validators -----------------------------------------------------------------
-H.validate_opened_buffer = function(x)
+function H.validate_opened_buffer(x)
   if x == nil or x == 0 then x = vim.api.nvim_get_current_buf() end
   if not H.is_opened_buffer(x) then H.error('`buf_id` should be an identifier of an opened directory buffer.') end
   return x
@@ -3162,7 +3161,7 @@ end
 
 ---@param buf_id integer
 ---@param x integer?
-H.validate_line = function(buf_id, x)
+function H.validate_line(buf_id, x)
   x = x or vim.fn.line('.')
   if not (type(x) == 'number' and 1 <= x and x <= vim.api.nvim_buf_line_count(buf_id)) then
     H.error('`line` should be a valid line number in buffer ' .. buf_id .. '.')
@@ -3171,7 +3170,7 @@ H.validate_line = function(buf_id, x)
 end
 
 ---@param x string[]
-H.validate_branch = function(x)
+function H.validate_branch(x)
   if not (H.islist(x) and x[1] ~= nil) then H.error('`branch` should be array with at least one element') end
   local res = {} ---@type string[]
   for i, p in ipairs(x) do
@@ -3191,24 +3190,24 @@ H.validate_branch = function(x)
 end
 
 -- Utilities ------------------------------------------------------------------
-H.error = function(msg) error('(mini.files) ' .. msg, 0) end
+function H.error(msg) error('(mini.files) ' .. msg, 0) end
 
-H.check_type = function(name, val, ref, allow_nil)
+function H.check_type(name, val, ref, allow_nil)
   if type(val) == ref or (ref == 'callable' and vim.is_callable(val)) or (allow_nil and val == nil) then return end
   H.error(string.format('`%s` should be %s, not %s', name, ref, type(val)))
 end
 
-H.set_buf_name = function(buf_id, name) vim.api.nvim_buf_set_name(buf_id, 'minifiles://' .. buf_id .. '/' .. name) end
+function H.set_buf_name(buf_id, name) vim.api.nvim_buf_set_name(buf_id, 'minifiles://' .. buf_id .. '/' .. name) end
 
-H.notify = function(msg, level_name) vim.notify('(mini.files) ' .. msg, vim.log.levels[level_name]) end
+function H.notify(msg, level_name) vim.notify('(mini.files) ' .. msg, vim.log.levels[level_name]) end
 
-H.map = function(mode, lhs, rhs, opts)
+function H.map(mode, lhs, rhs, opts)
   if lhs == '' then return end
   opts = vim.tbl_deep_extend('force', { silent = true }, opts or {})
   vim.keymap.set(mode, lhs, rhs, opts)
 end
 
-H.edit = function(path, win_id)
+function H.edit(path, win_id)
   if type(path) ~= 'string' then return end
   local b = vim.api.nvim_win_get_buf(win_id or 0)
   local try_mimic_buf_reuse = (vim.fn.bufname(b) == '' and vim.bo[b].buftype ~= 'quickfix' and not vim.bo[b].modified)
@@ -3221,36 +3220,36 @@ H.edit = function(path, win_id)
   return buf_id
 end
 
-H.trigger_event = function(event_name, data) vim.api.nvim_exec_autocmds('User', { pattern = event_name, data = data }) end
+function H.trigger_event(event_name, data) vim.api.nvim_exec_autocmds('User', { pattern = event_name, data = data }) end
 
 ---@param buf_id integer
-H.is_valid_buf = function(buf_id) return type(buf_id) == 'number' and vim.api.nvim_buf_is_valid(buf_id) end
+function H.is_valid_buf(buf_id) return type(buf_id) == 'number' and vim.api.nvim_buf_is_valid(buf_id) end
 
 ---@param win_id integer
-H.is_valid_win = function(win_id) return type(win_id) == 'number' and vim.api.nvim_win_is_valid(win_id) end
+function H.is_valid_win(win_id) return type(win_id) == 'number' and vim.api.nvim_win_is_valid(win_id) end
 
 ---@param text string
 ---@param width integer
-H.fit_to_width = function(text, width)
+function H.fit_to_width(text, width)
   local t_width = vim.fn.strchars(text)
   return t_width <= width and text or ('…' .. vim.fn.strcharpart(text, t_width - width + 1, width - 1))
 end
 
 ---@param buf_id integer
 ---@param line integer
-H.get_bufline = function(buf_id, line) return vim.api.nvim_buf_get_lines(buf_id, line - 1, line, false)[1] end
+function H.get_bufline(buf_id, line) return vim.api.nvim_buf_get_lines(buf_id, line - 1, line, false)[1] end
 
 ---@param buf_id integer
 ---@param lines string[]
-H.set_buflines = function(buf_id, lines)
+function H.set_buflines(buf_id, lines)
   local cmd =
     string.format('lockmarks lua vim.api.nvim_buf_set_lines(%d, 0, -1, false, %s)', buf_id, vim.inspect(lines))
   vim.cmd(cmd)
 end
 
-H.set_extmark = function(...) pcall(vim.api.nvim_buf_set_extmark, ...) end
+function H.set_extmark(...) pcall(vim.api.nvim_buf_set_extmark, ...) end
 
-H.win_set_buf = function(win_id, buf_id)
+function H.win_set_buf(win_id, buf_id)
   vim.wo[win_id].winfixbuf = false
   -- Prevent `BufEnter,BufLeave` that come from `nvim_win_set_buf` and conflict
   -- with other modules (like 'mini.jump'). Use 'mini.files' events if needed.
@@ -3260,19 +3259,19 @@ H.win_set_buf = function(win_id, buf_id)
 end
 if vim.fn.has('nvim-0.10') == 0 then H.win_set_buf = vim.api.nvim_win_set_buf end
 
-H.get_first_valid_normal_window = function()
+function H.get_first_valid_normal_window()
   for _, win_id in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
     if vim.api.nvim_win_get_config(win_id).relative == '' then return win_id end
   end
 end
 
-H.getcharstr = function()
+function H.getcharstr()
   local ok, char = pcall(vim.fn.getcharstr)
   if not ok or char == '\27' or char == '' then return end
   return char
 end
 
-H.sanitize_string = function(x) return ((x or ''):gsub('\n', '<NL>'):gsub('%z', '')) end
+function H.sanitize_string(x) return ((x or ''):gsub('\n', '<NL>'):gsub('%z', '')) end
 
 -- TODO: Remove after compatibility with Neovim=0.9 is dropped
 H.islist = vim.fn.has('nvim-0.10') == 1 and vim.islist or vim.tbl_islist
