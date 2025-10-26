@@ -569,9 +569,11 @@
 local MiniFiles = {}
 local H = {}
 
+---@class (partial) MiniFiles.PartialConfig : MiniFiles.Config
+
 --- Module setup
 ---
----@param config table|nil Module config table. See |MiniFiles.config|.
+---@param config MiniFiles.PartialConfig|nil Module config table. See |MiniFiles.config|.
 ---
 ---@usage >lua
 ---   require('mini.files').setup() -- use default config
@@ -604,7 +606,47 @@ MiniFiles.setup = function(config)
   H.create_default_hl()
 end
 
+---@class MiniFiles.Config.content
+---@field filter (fun(entry: fs_entry): boolean?)?
+---@field highlight (fun(entry: fs_entry): string)?
+---@field prefix (fun(entry: fs_entry): string)?
+---@field sort (fun(entries: fs_entry[]): fs_entry[])?
+
+---@class MiniFiles.Config.mappings
+---@field close string
+---@field go_in string
+---@field go_in_plus string
+---@field go_out string
+---@field go_out_plus string
+---@field mark_goto string
+---@field mark_set string
+---@field reset string
+---@field reveal_cwd string
+---@field show_help string
+---@field synchronize string
+---@field trim_left string
+---@field trim_right string
+
+---@class MiniFiles.Config.options
+---@field use_as_default_explorer boolean
+---@field permanent_delete boolean
+
+---@class MiniFiles.Config.windows
+---@field max_number integer
+---@field preview boolean
+---@field width_focus integer
+---@field width_nofocus integer
+---@field width_preview integer
+---@field width_file_preview integer?
+
+---@class MiniFiles.Config
+---@field content MiniFiles.Config.content
+---@field mappings MiniFiles.Config.mappings
+---@field options MiniFiles.Config.options
+---@field windows MiniFiles.Config.windows
+
 --stylua: ignore
+---@type MiniFiles.Config
 --- Defaults ~
 ---@eval return MiniDoc.afterlines_to_code(MiniDoc.current.eval_section)
 ---@text # Content ~
@@ -775,7 +817,7 @@ MiniFiles.config = {
 ---   Default: path of |current-directory|.
 ---@param use_latest boolean|nil Whether to load explorer state from history
 ---   (based on the supplied anchor path). Default: `true`.
----@param opts table|nil Table of options overriding |MiniFiles.config| and
+---@param opts MiniFiles.PartialConfig|nil Table of options overriding |MiniFiles.config| and
 ---   `vim.b.minifiles_config` for this particular explorer session.
 MiniFiles.open = function(path, use_latest, opts)
   -- Validate path: allow only valid file system path
@@ -785,7 +827,7 @@ MiniFiles.open = function(path, use_latest, opts)
   if fs_type == nil then H.error('`path` is not a valid path ("' .. path .. '")') end
 
   -- - Allow file path to use its parent while focusing on file
-  local entry_name
+  local entry_name --- @type string?
   if fs_type == 'file' then
     path, entry_name = H.fs_get_parent(path), H.fs_get_basename(path)
   end
@@ -798,7 +840,7 @@ MiniFiles.open = function(path, use_latest, opts)
   if did_close == false then return end
 
   -- Get explorer to open
-  local explorer
+  local explorer ---@type Explorer
   if use_latest then explorer = H.explorer_path_history[path] end
   explorer = explorer or H.explorer_new(path)
 
@@ -833,7 +875,7 @@ end
 --- - If in `opts` at least one of `content` entry is not `nil`, all directory
 ---   buffers are forced to update.
 ---
----@param opts table|nil Table of options to update.
+---@param opts MiniFiles.PartialConfig|nil Table of options to update.
 MiniFiles.refresh = function(opts)
   local explorer = H.explorer_get()
   if explorer == nil then return end
@@ -860,7 +902,7 @@ end
 --- - Update all directory buffers with the most relevant file system information.
 ---   Can be used without user edits to account for external file system changes.
 ---
----@return boolean Whether synchronization was done.
+---@return boolean? Whether synchronization was done.
 MiniFiles.synchronize = function()
   local explorer = H.explorer_get()
   if explorer == nil then return end
@@ -962,7 +1004,7 @@ end
 --- - If file, open it in the window which was current during |MiniFiles.open()|.
 ---   Explorer is not closed after that.
 ---
----@param opts table|nil Options. Possible fields:
+---@param opts { close_on_file?: boolean }|nil Options. Possible fields:
 ---   - <close_on_file> `(boolean)` - whether to close explorer after going
 ---     inside a file. Powers the `go_in_plus` mapping.
 ---     Default: `false`.
@@ -1080,7 +1122,7 @@ end
 
 --- Get state of active explorer
 ---
----@return table|nil Table with explorer state data or `nil` if no active explorer.
+---@return { anchor: string, bookmarks: Explorer.Bookmarks, branch: string[], depth_focus: integer, target_window: integer, windows: {win_id: integer, path: string}}|nil Table with explorer state data or `nil` if no active explorer.
 ---   State data is a table with the following fields:
 ---   - <anchor> `(string)` - anchor directory path (see |MiniFiles.open()|).
 ---   - <bookmarks> `(table)` - map from bookmark id (single character) to its data:
@@ -1133,12 +1175,12 @@ end
 ---
 --- Set which paths to display. Preview (if enabled) is applied afterwards.
 ---
----@param branch table Array of strings representing actually present on disk paths.
+---@param branch string[] Array of strings representing actually present on disk paths.
 ---   Each consecutive pair should represent direct parent-child paths.
 ---   Should contain at least one directory path.
 ---   May end with file path (will be previwed).
 ---   Relative paths are resolved using |current-directory|.
----@param opts table|nil Options. Possible fields:
+---@param opts {depth_focus: integer}|nil Options. Possible fields:
 ---   - <depth_focus> `(number)` - an index in `branch` for path to focus. Will
 ---     be normalized to fit inside `branch`. Default: index of deepest directory.
 ---
@@ -1175,9 +1217,9 @@ end
 --- Set bookmark
 ---
 ---@param id string Single character bookmark id.
----@param path string|function Path of a present on disk directory to set as
+---@param path string|fun(): string Path of a present on disk directory to set as
 ---   a bookmark's path. If callable, should return such path.
----@param opts table|nil Options. Possible fields:
+---@param opts { desc: string }|nil Options. Possible fields:
 ---   - <desc> `(string)` - bookmark description (used in help window).
 MiniFiles.set_bookmark = function(id, path, opts)
   local explorer = H.explorer_get()
@@ -1244,7 +1286,7 @@ end
 --- Sort directories and files separately (alphabetically ignoring case) and
 --- put directories first.
 ---
----@param fs_entries table Array of file system entry data.
+---@param fs_entries fs_entry[] Array of file system entry data.
 ---   Each one is a table with the following fields:
 --- __minifiles_fs_entry_data_fields
 ---
@@ -1252,7 +1294,7 @@ end
 MiniFiles.default_sort = function(fs_entries)
   -- Sort ignoring case
   local res = vim.tbl_map(
-    function(x)
+    function(x) ---@param x fs_entry
       return {
         fs_type = x.fs_type,
         name = x.name,
@@ -1267,6 +1309,7 @@ MiniFiles.default_sort = function(fs_entries)
   -- Sort based on default order
   table.sort(res, H.compare_fs_entries)
 
+  ---@param x fs_entry
   return vim.tbl_map(function(x) return { name = x.name, fs_type = x.fs_type, path = x.path } end, res)
 end
 
@@ -1297,16 +1340,16 @@ H.timers = {
 }
 
 -- Index of all visited files
-H.path_index = {}
+H.path_index = {} ---@type table<integer, string>
 
 -- History of explorers per root directory
-H.explorer_path_history = {}
+H.explorer_path_history = {} --- @type table<string, Explorer>
 
 -- Register of opened explorers per tabpage
-H.opened_explorers = {}
+H.opened_explorers = {} --- @type table<integer, Explorer>
 
 -- Register of latest used paths per tabpage
-H.latest_paths = {}
+H.latest_paths = {} ---@type table<integer, string>
 
 -- Register of opened buffer data for quick access. Tables per buffer id:
 -- - <path> - path which contents this buffer displays.
@@ -1316,7 +1359,7 @@ H.latest_paths = {}
 --   Values bigger than 0 can be treated as if buffer was modified by user.
 --   It uses number instead of boolean to overcome `TextChanged` event on
 --   initial `buf_set_lines` (`noautocmd` doesn't quick work for this event).
-H.opened_buffers = {}
+H.opened_buffers = {} ---@type table<integer, { path: string, children_path_ids: string[], win_id: integer?, n_modified: integer }>
 
 -- Cache for `vim.ui` methods that are adjusted while explorer is open
 H.vim_ui = { select = nil, select_active = false, input = nil, input_active = false }
@@ -1326,6 +1369,7 @@ H.is_windows = vim.loop.os_uname().sysname == 'Windows_NT'
 
 -- Helper functionality =======================================================
 -- Settings -------------------------------------------------------------------
+---@param config MiniFiles.PartialConfig?
 H.setup_config = function(config)
   H.check_type('config', config, 'table', true)
   config = vim.tbl_deep_extend('force', vim.deepcopy(H.default_config), config or {})
@@ -1366,8 +1410,10 @@ H.setup_config = function(config)
   return config
 end
 
+---@param config MiniFiles.Config
 H.apply_config = function(config) MiniFiles.config = config end
 
+---@param config MiniFiles.Config
 H.create_autocommands = function(config)
   local gr = vim.api.nvim_create_augroup('MiniFiles', {})
 
@@ -1405,6 +1451,7 @@ H.create_default_hl = function()
   hi('MiniFilesTitleFocused',   { link = 'FloatTitle' })
 end
 
+---@param config MiniFiles.Config?
 H.get_config = function(config)
   return vim.tbl_deep_extend('force', MiniFiles.config, vim.b.minifiles_config or {}, config or {})
 end
@@ -1446,29 +1493,36 @@ H.track_dir_edit = function(data)
   vim.schedule(function() MiniFiles.open(path, false) end)
 end
 
+---@class Explorer.Bookmark
+---@field path string|fun():string
+---@field desc string
+
+---@alias Explorer.Bookmarks table<string, Explorer.Bookmark>
+
 -- Explorers ------------------------------------------------------------------
 ---@class Explorer
 ---
----@field bookmarks table Map from single characters to bookmark data: table
+---@field bookmarks Explorer.Bookmarks Map from single characters to bookmark data: table
 ---   with <path> and <desc> fields.
----@field branch table Array of absolute directory paths from parent to child.
+---@field branch string[] Array of absolute directory paths from parent to child.
 ---   Its ids are called depth.
 ---@field depth_focus number Depth to focus.
----@field views table Views for paths. Each view is a table with:
+---@field views table<string, { buf_id: integer, was_focused: boolean, cursor: { line: integer, col: integer } | string }> Views for paths. Each view is a table with:
 ---   - <buf_id> where to show directory content.
 ---   - <was_focused> - whether buffer was focused during current session.
 ---   - <cursor> to position cursor; can be:
 ---       - `{ line, col }` table to set cursor when buffer changes window.
 ---       - `entry_name` string entry name to find inside directory buffer.
----@field windows table Array of currently opened window ids (left to right).
+---@field windows integer[] Array of currently opened window ids (left to right).
 ---@field anchor string Anchor directory of the explorer. Used as index in
 ---   history and for `reset()` operation.
 ---@field tabpage_id number Id of current tabpage
 ---@field target_window number Id of window in which files will be opened.
----@field opts table Options used for this particular explorer.
+---@field opts MiniFiles.Config Options used for this particular explorer.
 ---@field is_corrupted boolean Whether this particular explorer can not be
 ---   normalized and should be closed.
 ---@private
+---@param path string
 H.explorer_new = function(path)
   return {
     branch = { path },
@@ -1483,6 +1537,8 @@ H.explorer_new = function(path)
   }
 end
 
+---@param tabpage_id? integer
+---@param ignore_visibility? boolean
 H.explorer_get = function(tabpage_id, ignore_visibility)
   tabpage_id = tabpage_id or vim.api.nvim_get_current_tabpage()
   local res = H.opened_explorers[tabpage_id]
@@ -1493,6 +1549,7 @@ H.explorer_get = function(tabpage_id, ignore_visibility)
   return nil
 end
 
+---@param explorer Explorer
 H.explorer_is_visible = function(explorer)
   if explorer == nil then return nil end
   for _, win_id in ipairs(explorer.windows) do
@@ -1501,6 +1558,7 @@ H.explorer_is_visible = function(explorer)
   return false
 end
 
+---@param explorer Explorer
 H.explorer_refresh = function(explorer, opts)
   explorer = H.explorer_normalize(explorer)
   if explorer.is_corrupted then
@@ -1634,6 +1692,7 @@ H.explorer_adjust_vim_ui = function()
   end
 end
 
+---@param explorer Explorer
 H.explorer_normalize = function(explorer)
   -- Ensure that all paths from branch are valid present paths
   local norm_branch = {}
@@ -1662,6 +1721,8 @@ H.explorer_normalize = function(explorer)
   return explorer
 end
 
+---@param explorer Explorer
+---@param depth integer
 H.explorer_sync_cursor_and_branch = function(explorer, depth)
   -- Compute helper data while making early returns
   if #explorer.branch < depth then return explorer end
@@ -1702,6 +1763,10 @@ H.explorer_sync_cursor_and_branch = function(explorer, depth)
   return explorer
 end
 
+---@param explorer Explorer
+---@param buf_id integer
+---@param from_line integer
+---@param to_line integer
 H.explorer_go_in_range = function(explorer, buf_id, from_line, to_line)
   -- Compute which entries to go in: all files and only last directory
   local files, path, line = {}, nil, nil
@@ -1739,6 +1804,9 @@ H.explorer_go_in_range = function(explorer, buf_id, from_line, to_line)
   return explorer
 end
 
+---@param explorer Explorer
+---@param path string
+---@param entry_name string
 H.explorer_focus_on_entry = function(explorer, path, entry_name)
   if entry_name == nil then return explorer end
 
@@ -1756,6 +1824,7 @@ H.explorer_focus_on_entry = function(explorer, path, entry_name)
   return explorer
 end
 
+---@param explorer Explorer
 H.explorer_compute_fs_actions = function(explorer)
   -- Compute differences
   local fs_diffs = {}
@@ -1834,6 +1903,7 @@ H.explorer_compute_fs_actions = function(explorer)
   return res
 end
 
+---@param explorer Explorer
 H.explorer_update_cursors = function(explorer)
   for _, win_id in ipairs(explorer.windows) do
     if H.is_valid_win(win_id) then
@@ -1846,6 +1916,10 @@ H.explorer_update_cursors = function(explorer)
   return explorer
 end
 
+---@param explorer Explorer
+---@param depth integer
+---@param win_count integer
+---@param win_col integer
 H.explorer_refresh_depth_window = function(explorer, depth, win_count, win_col)
   local path = explorer.branch[depth]
   local type = H.fs_get_type(path)
@@ -1896,12 +1970,15 @@ H.explorer_refresh_depth_window = function(explorer, depth, win_count, win_col)
   return cur_width
 end
 
+---@param explorer Explorer
+---@param path string
 H.explorer_get_path_depth = function(explorer, path)
   for depth, depth_path in pairs(explorer.branch) do
     if path == depth_path then return depth end
   end
 end
 
+---@param explorer Explorer
 H.explorer_ignore_pending_fs_actions = function(explorer, action_name)
   -- Exit if nothing to ignore
   if H.explorer_compute_fs_actions(explorer) == nil then return true end
@@ -1911,17 +1988,23 @@ H.explorer_ignore_pending_fs_actions = function(explorer, action_name)
   return confirm_res == 1
 end
 
+---@param explorer Explorer
+---@param path string
 H.explorer_open_file = function(explorer, path)
   explorer = H.explorer_ensure_target_window(explorer)
   H.edit(path, explorer.target_window)
   return explorer
 end
 
+---@param explorer Explorer
 H.explorer_ensure_target_window = function(explorer)
   if not H.is_valid_win(explorer.target_window) then explorer.target_window = H.get_first_valid_normal_window() end
   return explorer
 end
 
+---@param explorer Explorer
+---@param path string
+---@param target_depth integer
 H.explorer_open_directory = function(explorer, path, target_depth)
   -- Update focused depth
   explorer.depth_focus = target_depth
@@ -1936,6 +2019,7 @@ H.explorer_open_directory = function(explorer, path, target_depth)
   return explorer
 end
 
+---@param explorer Explorer
 H.explorer_open_root_parent = function(explorer)
   local root = explorer.branch[1]
   local root_parent = H.fs_get_parent(root)
@@ -1948,6 +2032,7 @@ H.explorer_open_root_parent = function(explorer)
   return H.explorer_focus_on_entry(explorer, root_parent, H.fs_get_basename(root))
 end
 
+---@param explorer Explorer
 H.explorer_trim_branch_right = function(explorer)
   for i = explorer.depth_focus + 1, #explorer.branch do
     explorer.branch[i] = nil
@@ -1955,6 +2040,7 @@ H.explorer_trim_branch_right = function(explorer)
   return explorer
 end
 
+---@param explorer Explorer
 H.explorer_trim_branch_left = function(explorer)
   local new_branch = {}
   for i = explorer.depth_focus, #explorer.branch do
@@ -2043,6 +2129,7 @@ H.explorer_show_help = function(explorer, explorer_buf_id, explorer_win_id)
   return win_id
 end
 
+---@param explorer Explorer
 H.compute_visible_depth_range = function(explorer, opts)
   -- Compute maximum number of windows possible to fit in current Neovim width
   -- Add 2 to widths to take into account width of left and right borders
@@ -2201,6 +2288,7 @@ H.view_track_text_change = function(data)
 end
 
 -- Buffers --------------------------------------------------------------------
+---@param path string
 H.buffer_create = function(path, mappings)
   -- Create buffer
   local buf_id = vim.api.nvim_create_buf(false, true)
@@ -2236,6 +2324,7 @@ H.buffer_create = function(path, mappings)
   return buf_id
 end
 
+---@param buf_id integer
 H.buffer_make_mappings = function(buf_id, mappings)
   local go_in_with_count = function()
     for _ = 1, vim.v.count1 do
@@ -2325,6 +2414,7 @@ H.buffer_make_mappings = function(buf_id, mappings)
   --stylua: ignore end
 end
 
+---@param buf_id integer
 H.buffer_update = function(buf_id, path, opts, is_preview)
   if not H.is_valid_buf(buf_id) then return end
 
@@ -2342,6 +2432,7 @@ H.buffer_update = function(buf_id, path, opts, is_preview)
   H.opened_buffers[buf_id].n_modified = -1
 end
 
+---@param buf_id integer
 H.buffer_update_directory = function(buf_id, path, opts, is_preview)
   -- Compute and cache (to use during sync) shown file system entries
   local children_path_ids = H.opened_buffers[buf_id].children_path_ids
@@ -2424,12 +2515,14 @@ H.buffer_update_file = function(buf_id, path, opts, _)
   end
 end
 
+---@param buf_id integer
 H.buffer_delete = function(buf_id)
   if buf_id == nil then return end
   pcall(vim.api.nvim_buf_delete, buf_id, { force = true })
   H.opened_buffers[buf_id] = nil
 end
 
+---@param buf_id integer
 H.buffer_compute_fs_diff = function(buf_id)
   if not H.is_modified_buffer(buf_id) then return {} end
 
@@ -2465,19 +2558,23 @@ H.buffer_compute_fs_diff = function(buf_id)
   return res
 end
 
+---@param buf_id integer
 H.buffer_should_highlight = function(buf_id)
   -- Highlight if buffer size is not too big, both in total and per line
   local buf_size = vim.api.nvim_buf_call(buf_id, function() return vim.fn.line2byte(vim.fn.line('$') + 1) end)
   return buf_size <= 1000000 and buf_size <= 1000 * vim.api.nvim_buf_line_count(buf_id)
 end
 
+---@param buf_id integer
 H.is_opened_buffer = function(buf_id) return H.opened_buffers[buf_id] ~= nil end
 
+---@param buf_id integer
 H.is_modified_buffer = function(buf_id)
   local data = H.opened_buffers[buf_id]
   return data ~= nil and data.n_modified > 0
 end
 
+---@param l string?
 H.match_line_entry_name = function(l)
   if l == nil then return nil end
   local offset = H.match_line_offset(l)
@@ -2487,11 +2584,13 @@ H.match_line_entry_name = function(l)
   return res
 end
 
+---@param l string?
 H.match_line_offset = function(l)
   if l == nil then return nil end
   return l:match('^/.-/.-/()') or 1
 end
 
+---@param l string?
 H.match_line_path_id = function(l)
   if l == nil then return nil end
 
@@ -2662,6 +2761,8 @@ end
 ---@field path string Full path.
 ---@field path_id number Id of full path.
 ---@private
+---@param path string
+---@param content_opts MiniFiles.Config.content
 H.fs_read_dir = function(path, content_opts)
   local fs = vim.loop.fs_scandir(path)
   local res = {}
@@ -2720,6 +2821,7 @@ H.compare_fs_entries = function(a, b)
   return a.lower_name < b.lower_name
 end
 
+---@param path string
 H.fs_normalize_path = function(path) return (path:gsub('/+', '/'):gsub('(.)/$', '%1')) end
 if H.is_windows then
   H.fs_normalize_path = function(path)
@@ -2733,6 +2835,7 @@ H.fs_is_present_path = function(path) return vim.loop.fs_stat(path) ~= nil and n
 
 H.fs_child_path = function(dir, name) return H.fs_normalize_path(string.format('%s/%s', dir, name)) end
 
+---@param path string
 H.fs_full_path = function(path) return H.fs_normalize_path(vim.fn.fnamemodify(path, ':p')) end
 
 H.fs_shorten_path = function(path)
@@ -2751,8 +2854,11 @@ if H.is_windows then
   end
 end
 
+---@param path string
+---@return string?
 H.fs_get_basename = function(path) return H.fs_normalize_path(path):match('[^/]+$') end
 
+---@param path string
 H.fs_get_parent = function(path)
   path = H.fs_full_path(path)
 
@@ -3054,6 +3160,8 @@ H.validate_opened_buffer = function(x)
   return x
 end
 
+---@param buf_id integer
+---@param x integer?
 H.validate_line = function(buf_id, x)
   x = x or vim.fn.line('.')
   if not (type(x) == 'number' and 1 <= x and x <= vim.api.nvim_buf_line_count(buf_id)) then
@@ -3062,9 +3170,10 @@ H.validate_line = function(buf_id, x)
   return x
 end
 
+---@param x string[]
 H.validate_branch = function(x)
   if not (H.islist(x) and x[1] ~= nil) then H.error('`branch` should be array with at least one element') end
-  local res = {}
+  local res = {} ---@type string[]
   for i, p in ipairs(x) do
     if type(p) ~= 'string' then H.error('`branch` contains not string: ' .. vim.inspect(p)) end
     p = H.fs_full_path(p)
@@ -3114,17 +3223,25 @@ end
 
 H.trigger_event = function(event_name, data) vim.api.nvim_exec_autocmds('User', { pattern = event_name, data = data }) end
 
+---@param buf_id integer
 H.is_valid_buf = function(buf_id) return type(buf_id) == 'number' and vim.api.nvim_buf_is_valid(buf_id) end
 
+---@param win_id integer
 H.is_valid_win = function(win_id) return type(win_id) == 'number' and vim.api.nvim_win_is_valid(win_id) end
 
+---@param text string
+---@param width integer
 H.fit_to_width = function(text, width)
   local t_width = vim.fn.strchars(text)
   return t_width <= width and text or ('…' .. vim.fn.strcharpart(text, t_width - width + 1, width - 1))
 end
 
+---@param buf_id integer
+---@param line integer
 H.get_bufline = function(buf_id, line) return vim.api.nvim_buf_get_lines(buf_id, line - 1, line, false)[1] end
 
+---@param buf_id integer
+---@param lines string[]
 H.set_buflines = function(buf_id, lines)
   local cmd =
     string.format('lockmarks lua vim.api.nvim_buf_set_lines(%d, 0, -1, false, %s)', buf_id, vim.inspect(lines))
