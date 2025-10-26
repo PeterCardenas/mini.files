@@ -742,6 +742,8 @@ MiniFiles.config = {
     width_nofocus = 15,
     -- Width of preview window
     width_preview = 25,
+    -- Width of preview window if it is for a file
+    width_file_preview = nil,
   },
 }
 --minidoc_afterlines_end
@@ -1581,13 +1583,15 @@ H.explorer_refresh = function(explorer, opts)
     cur_win_col = 0
     for win_index = depth_range.from, depth_range.to do
       local win_id = explorer.windows[win_index]
-      local win_width = vim.api.nvim_win_get_width(win_id)
-      local new_win_width = math.floor(win_width * resize_ratio)
-      vim.api.nvim_win_set_width(win_id, new_win_width)
-      local win_config = vim.api.nvim_win_get_config(win_id)
-      win_config.col = cur_win_col
-      vim.api.nvim_win_set_config(win_id, win_config)
-      cur_win_col = cur_win_col + new_win_width + 2
+      if type(win_id) == "number" then
+        local win_width = vim.api.nvim_win_get_width(win_id)
+        local new_win_width = math.floor(win_width * resize_ratio)
+        vim.api.nvim_win_set_width(win_id, new_win_width)
+        local win_config = vim.api.nvim_win_get_config(win_id)
+        win_config.col = cur_win_col
+        vim.api.nvim_win_set_config(win_id, win_config)
+        cur_win_col = cur_win_col + new_win_width + 2
+      end
     end
   end
 
@@ -1844,13 +1848,14 @@ end
 
 H.explorer_refresh_depth_window = function(explorer, depth, win_count, win_col)
   local path = explorer.branch[depth]
+  local type = H.fs_get_type(path)
   local views, windows, opts = explorer.views, explorer.windows, explorer.opts
 
   -- Compute width based on window role
   local win_is_focused = depth == explorer.depth_focus
   local win_is_preview = opts.windows.preview and (depth == (explorer.depth_focus + 1))
   local cur_width = win_is_focused and opts.windows.width_focus
-    or (win_is_preview and opts.windows.width_preview or opts.windows.width_nofocus)
+    or (win_is_preview and (type == 'file' and opts.windows.width_file_preview or opts.windows.width_preview) or opts.windows.width_nofocus)
 
   -- Prepare target view
   local view = views[path] or {}
@@ -2044,7 +2049,9 @@ H.compute_visible_depth_range = function(explorer, opts)
   local width_focus, width_nofocus = opts.windows.width_focus + 2, opts.windows.width_nofocus + 2
 
   local has_preview = explorer.opts.windows.preview and explorer.depth_focus < #explorer.branch
-  local width_preview = has_preview and (opts.windows.width_preview + 2) or width_nofocus
+  local preview_path = has_preview and explorer.branch[explorer.depth_focus] or nil
+  local type = preview_path and H.fs_get_type(preview_path)
+  local width_preview = has_preview and (type == 'file' and opts.windows.width_file_preview or (opts.windows.width_preview + 2)) or width_nofocus
 
   local max_number = 1
   if (width_focus + width_preview) <= vim.o.columns then max_number = max_number + 1 end
@@ -2389,7 +2396,8 @@ end
 H.buffer_update_file = function(buf_id, path, opts, _)
   -- Work only with readable text file. This is not 100% proof, but good enough.
   -- Source: https://github.com/sharkdp/content_inspector
-  local fd, width_preview = vim.loop.fs_open(path, 'r', 1), opts.windows.width_preview
+  local type = H.fs_get_type(path)
+  local fd, width_preview = vim.loop.fs_open(path, 'r', 1), type == 'file' and opts.windows.width_file_preview or opts.windows.width_preview
   if fd == nil then return H.set_buflines(buf_id, { '-No-access' .. string.rep('-', width_preview) }) end
   local is_text = vim.loop.fs_read(fd, 1024):find('\0') == nil
   vim.loop.fs_close(fd)
